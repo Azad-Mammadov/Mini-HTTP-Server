@@ -8,6 +8,7 @@
 #include <vector>
 #include <fstream>
 #include <sstream>
+#include <direct.h>
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -36,12 +37,14 @@ void handle_client(SOCKET client_socket) {
     }
 
     // Remove leading '/' from path
-    if (path.length() > 1 && path[0] == '/') {
+    if (!path.empty() && path[0] == '/') {
         path = path.substr(1);
     }
     if (path.empty()) {
         path = "index.html";  // default file
     }
+
+    std::cout << "Opening file: " << path << std::endl;
 
     std::ifstream file(path, std::ios::binary);
     if (!file) {
@@ -72,6 +75,10 @@ void handle_client(SOCKET client_socket) {
 }
 
 int main() {
+    char cwd[1024];
+    if ( _getcwd(cwd, sizeof(cwd)) != nullptr){
+        std::cout << "Current working directory: " << cwd << std::endl;
+    }    
     WSADATA wsaData;
     int wsResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
     if (wsResult != 0) {
