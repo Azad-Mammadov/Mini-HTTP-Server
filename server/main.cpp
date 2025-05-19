@@ -1,34 +1,50 @@
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <windows.h>
+// Include Winsock2 for Windows Sockets 2 functions and definitions
+#include <winsock2.h> // WSAStartup, socket, bind, listen, accept, send, recv, closesocket, WSAGetLastError, WSACleanup
+// Include ws2tcpip for definitions for TCP/IP protocols used with Winsock2
+#include <ws2tcpip.h> //  INADDR_ANY
 
+// Include iostream for input and output facilities
 #include <iostream>
+// Include string for string manipulation support
 #include <string>
+// Include thread for creating and managing threads
 #include <thread>
+// Include vector for dynamic array support
 #include <vector>
+// Include fstream for file stream input and output
 #include <fstream>
+// Include sstream for string stream input and output
 #include <sstream>
-#include <direct.h>
+// Include direct.h for directory manipulation functions in Windows
+#include <direct.h> // _getcwd, 
 
+ // Linker directive to include Winsock2 library for socket functions such as WSAStartup, socket, bind, listen, accept, send, recv, closesocket, WSACleanup, WSAGetLastError
 #pragma comment(lib, "ws2_32.lib")
 
 const int PORT = 8080;
-const int BACKLOG = 10;
-const int BUFFER_SIZE = 4096;
+const int BACKLOG = 10; //10 clients can be waiting in the queue to be accepted by the server. 
+const int BUFFER_SIZE = 4096; // Buffer size for receiving data
 
 void handle_client(SOCKET client_socket) {
+    // Define a buffer to store the received data
     char buffer[BUFFER_SIZE];
+    // Receive data from the client socket
     int bytes_received = recv(client_socket, buffer, BUFFER_SIZE - 1, 0);
+    // If no data is received, close the socket and return
     if (bytes_received <= 0) {
         closesocket(client_socket);
         return;
     }
+    // Null-terminate the buffer
     buffer[bytes_received] = '\0';
 
+    // Create a string stream from the received data
     std::istringstream request_stream(buffer);
+    // Extract the method, path, and version from the request
     std::string method, path, version;
     request_stream >> method >> path >> version;
 
+    // If the method is not GET, send a 405 Method Not Allowed response
     if (method != "GET") {
         std::string response = "HTTP/1.1 405 Method Not Allowed\r\n\r\n";
         send(client_socket, response.c_str(), (int)response.size(), 0);
@@ -40,13 +56,16 @@ void handle_client(SOCKET client_socket) {
     if (!path.empty() && path[0] == '/') {
         path = path.substr(1);
     }
+    // If the path is empty, set it to index.html
     if (path.empty()) {
         path = "index.html";  // default file
     }
 
     std::cout << "Opening file: " << path << std::endl;
 
+    // Open the file in binary mode
     std::ifstream file(path, std::ios::binary);
+    // If the file cannot be opened, send a 404 Not Found response
     if (!file) {
         std::string not_found = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
         send(client_socket, not_found.c_str(), (int)not_found.size(), 0);
